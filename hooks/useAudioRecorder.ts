@@ -6,6 +6,7 @@ export type RecordingState = "idle" | "recording" | "processing" | "error";
 
 export interface UseAudioRecorderReturn {
   recordingState: RecordingState;
+  setRecordingState: (state: RecordingState) => void;
   elapsedSeconds: number;
   startRecording: () => Promise<void>;
   stopRecording: () => void;

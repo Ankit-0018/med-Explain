@@ -1,167 +1,119 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Sparkles, Pill, Timer, ArrowLeft, Home } from "lucide-react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Pill,
-  ShieldCheck,
-  Sparkles,
-  Utensils,
-} from "lucide-react";
-import { GlassCard } from "@/components/GlassCard";
-import { MOCK_UI_DATA } from "@/lib/mockData";
+import { use } from "react";
 
 interface MedicineDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function MedicineDetailPage({
-  params,
-}: MedicineDetailPageProps) {
-  const medicine = MOCK_UI_DATA.medicineCards.find((item) => item.id === "2");
-
-  if (!medicine) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
-        <div className="glass p-10 text-center max-w-lg">
-          <p className="text-sm uppercase tracking-[0.35em] text-primary/70">
-            Medicine detail
-          </p>
-          <h1 className="mt-4 text-3xl font-black">
-            Oops, this medication is unavailable.
-          </h1>
-          <p className="mt-4 text-sm text-foreground/60">
-            Please return to the main screen and choose another medicine from
-            your list.
-          </p>
-          <Link
-            href="/"
-            className="mt-8 inline-flex rounded-3xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20"
-          >
-            Back to home
-          </Link>
-        </div>
-      </div>
-    );
-  }
+export default function MedicineDetailPage({ params }: MedicineDetailPageProps) {
+  // We use `use` to unwrap the params promise even if we don't use the id yet
+  const resolvedParams = use(params);
 
   return (
-    <div className="relative min-h-screen bg-background overflow-hidden">
-      <div className="absolute inset-0 animate-gradient opacity-15" />
+    <div className="relative min-h-screen bg-background overflow-hidden flex flex-col items-center justify-center">
+      {/* Decorative background */}
+      <div className="absolute inset-0 animate-gradient opacity-10" />
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-[100px]" />
+      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-[100px]" />
 
-      <main className="relative z-10 mx-auto max-w-4xl px-6 py-12">
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-white/10"
+      <main className="relative z-10 w-full max-w-2xl px-6 py-12 flex flex-col items-center text-center">
+        {/* Back Button */}
+        <motion.div
+           initial={{ opacity: 0, x: -20 }}
+           animate={{ opacity: 1, x: 0 }}
+           className="absolute top-4 left-6"
+        >
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-foreground/60 transition hover:bg-white/10 hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+        </motion.div>
+
+        {/* Icon Circle */}
+        <motion.div
+          initial={{ scale: 0, rotate: -45 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", damping: 15, stiffness: 200 }}
+          className="relative mb-10"
+        >
+          <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+          <div className="relative w-32 h-32 rounded-[40px] bg-gradient-to-tr from-primary/20 to-accent/20 border border-white/10 flex items-center justify-center text-primary shadow-2xl">
+            <Pill className="w-14 h-14" />
+            <motion.div
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute top-6 right-6"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Link>
-            <div className="rounded-3xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
-              Medicine details
-            </div>
+              <Sparkles className="w-6 h-6 text-accent" />
+            </motion.div>
           </div>
+        </motion.div>
 
-          <GlassCard className="p-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.35em] text-foreground/40">
-                  {medicine.frequency}
-                </p>
-                <h1 className="mt-3 text-4xl font-black tracking-tight">
-                  {medicine.name}
-                </h1>
-                <p className="mt-4 max-w-2xl text-sm text-foreground/60">
-                  {medicine.short}
-                </p>
-              </div>
-
-              <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 text-center">
-                <Pill className="mx-auto mb-4 h-10 w-10 rounded-3xl bg-primary/10 p-2 text-primary" />
-                <p className="text-sm uppercase tracking-[0.35em] text-foreground/40">
-                  Dosage
-                </p>
-                <p className="mt-3 text-3xl font-black text-foreground">
-                  {medicine.dosage}
-                </p>
-                <p className="mt-2 text-sm text-foreground/60">
-                  {medicine.frequency}
-                </p>
-              </div>
+        {/* Text Content */}
+        <div className="space-y-6 max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              <Timer className="w-3 h-3" /> Standalone View Coming Soon
             </div>
-          </GlassCard>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight mt-6 leading-tight">
+              Detailed Medicine <br />
+              <span className="text-primary text-3xl md:text-4xl">Insights Dashboard</span>
+            </h1>
+          </motion.div>
 
-          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="space-y-6">
-              <GlassCard className="p-8">
-                <div className="flex items-center gap-3 text-primary mb-5">
-                  <Sparkles className="w-5 h-5" />
-                  <span className="text-sm uppercase tracking-[0.35em] text-primary/70">
-                    Why prescribed
-                  </span>
-                </div>
-                <p className="text-sm leading-7 text-foreground/70">
-                  {medicine.details.why}
-                </p>
-              </GlassCard>
-
-              <GlassCard className="p-8">
-                <div className="flex items-center gap-3 text-accent mb-5">
-                  <ShieldCheck className="w-5 h-5" />
-                  <span className="text-sm uppercase tracking-[0.35em] text-accent/70">
-                    How it works
-                  </span>
-                </div>
-                <p className="text-sm leading-7 text-foreground/70">
-                  {medicine.details.how}
-                </p>
-              </GlassCard>
-
-              <GlassCard className="p-8 bg-background/40 border-white/10">
-                <div className="flex items-center gap-3 text-danger mb-5">
-                  <AlertTriangle className="w-5 h-5" />
-                  <span className="text-sm uppercase tracking-[0.35em] text-danger/80">
-                    Side effects
-                  </span>
-                </div>
-                <ul className="space-y-3 text-sm text-foreground/70">
-                  {medicine.details.sideEffects.map((effect) => (
-                    <li key={effect} className="flex items-start gap-3">
-                      <span className="mt-1 inline-block h-2 w-2 rounded-full bg-danger" />
-                      <span>{effect}</span>
-                    </li>
-                  ))}
-                </ul>
-              </GlassCard>
-            </div>
-
-            <GlassCard className="p-8 bg-white/5">
-              <div className="flex items-center gap-3 text-foreground/80 mb-5">
-                <Utensils className="w-5 h-5 text-accent" />
-                <div>
-                  <p className="text-sm uppercase tracking-[0.35em] text-foreground/40">
-                    Food instructions
-                  </p>
-                  <h2 className="text-xl font-black">Best way to take it</h2>
-                </div>
-              </div>
-              <p className="text-sm leading-7 text-foreground/70">
-                {medicine.details.food}
-              </p>
-
-              <div className="mt-8 rounded-3xl bg-background/30 p-5">
-                <p className="text-xs uppercase tracking-[0.35em] text-foreground/40">
-                  Reminder
-                </p>
-                <p className="mt-3 text-sm text-foreground/70">
-                  Keep consistent timing and follow the full prescription course
-                  even if symptoms ease.
-                </p>
-              </div>
-            </GlassCard>
-          </div>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-base text-foreground/50 leading-relaxed font-medium"
+          >
+            We are building a dedicated, deep-dive view for medicine <strong>{resolvedParams.id}</strong>. For now, you can view all instructions and safety details by tapping the <strong>Info</strong> button on any medicine card in your main list.
+          </motion.p>
         </div>
+
+        {/* Status Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-12 w-full max-w-sm glass-dark rounded-[32px] p-6 border border-white/5 flex items-center gap-5 shadow-2xl mx-auto"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-foreground/40 shrink-0">
+            <Timer className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest">Feature Progress</p>
+            <p className="text-sm font-bold text-foreground/80">Refining standalone analytics</p>
+          </div>
+          <div className="ml-auto w-2 h-2 rounded-full bg-primary animate-ping shrink-0" />
+        </motion.div>
+
+        {/* Action Link */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-10"
+        >
+          <Link
+            href="/"
+            className="inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 text-sm font-bold text-white shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
+          >
+            <Home className="w-4 h-4" />
+            Go to Main Dashboard
+          </Link>
+        </motion.div>
       </main>
     </div>
   );

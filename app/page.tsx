@@ -14,6 +14,7 @@ import { BottomSheet } from "@/components/BottomSheet";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { createClient } from "@/lib/supabase/client";
 import type { UIData, MedicineCard } from "@/lib/types";
+import { MOCK_UI_DATA } from "@/lib/mockData";
 import { Zap, ShieldAlert, Utensils, AlertCircle } from "lucide-react";
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -24,9 +25,9 @@ export default function MedExplainApp() {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // New unified UI data state
-  const [uiData, setUiData] = useState<UIData | null>(null);
-  const [transcript, setTranscript] = useState<string>("");
+  // New unified UI data state - Seeded with mock data for visibility
+  const [uiData, setUiData] = useState<UIData | null>(MOCK_UI_DATA);
+  const [transcript, setTranscript] = useState<string>("Hello, I'm Dr. Smith. Based on your symptoms of a sore throat and mild fever, I'm diagnosing you with an upper respiratory infection. I'm prescribing Amoxicillin for the infection, Paracetamol for the fever and pain, and Cetirizine for your congestion. Please take the full course of antibiotics.");
 
   const [selectedMed, setSelectedMed] = useState<MedicineCard | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
