@@ -1,57 +1,83 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Send, User, Bot, Sparkles } from "lucide-react";
-import { GlassCard } from "../GlassCard";
-
-const MOCK_MESSAGES = [
-  { role: "bot", content: "Hello! I'm your MedExplain AI assistant. I've analyzed your consultation with Dr. Smith. How can I help you today?" },
-  { role: "user", content: "What should I avoid while taking Metformin?" },
-  { role: "bot", content: "When taking Metformin, you should avoid excessive alcohol consumption as it can increase the risk of lactic acidosis. Also, try to take it with meals to minimize stomach upset." },
-];
+import { Sparkles, MessageSquare, Timer, ArrowUpRight } from "lucide-react";
 
 export const ChatView = () => {
   return (
-    <div className="flex flex-col h-full space-y-4 pb-12">
-      <div className="px-1 flex items-center justify-between mb-2">
-        <h2 className="text-3xl font-black tracking-tight">AI<br /><span className="text-primary">Assistant</span></h2>
-        <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
-          <Sparkles className="w-5 h-5" />
-        </div>
-      </div>
-
-      <div className="flex-1 space-y-4 overflow-y-auto no-scrollbar pb-20">
-        {MOCK_MESSAGES.map((msg, i) => (
+    <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
+      {/* Icon Circle */}
+      <motion.div
+        initial={{ scale: 0, rotate: -45 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", damping: 15, stiffness: 200 }}
+        className="relative mb-8"
+      >
+        <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+        <div className="relative w-24 h-24 rounded-[32px] bg-gradient-to-tr from-primary/20 to-accent/20 border border-white/10 flex items-center justify-center text-primary shadow-2xl">
+          <MessageSquare className="w-10 h-10" />
           <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute top-4 right-4"
           >
-            <div className={`max-w-[85%] p-4 rounded-3xl ${
-              msg.role === "user" 
-                ? "bg-primary text-white rounded-tr-none" 
-                : "glass-dark text-foreground/80 rounded-tl-none border-white/5"
-            }`}>
-              <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
-            </div>
+            <Sparkles className="w-5 h-5 text-accent" />
           </motion.div>
-        ))}
+        </div>
+      </motion.div>
+
+      {/* Text Content */}
+      <div className="space-y-4 max-w-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            Future Update
+          </span>
+          <h2 className="text-3xl font-black tracking-tight mt-4">
+            AI Health <br />
+            <span className="text-primary">Assistant</span>
+          </h2>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-sm text-foreground/50 leading-relaxed font-medium"
+        >
+          Your personal medical expert is currently in training. Soon, you'll be able to ask deep questions about your consultations and get instant, accurate answers.
+        </motion.p>
       </div>
 
-      <div className="absolute bottom-6 left-0 right-0 px-2">
-        <div className="glass-dark rounded-[32px] p-2 flex items-center gap-2 border-white/10 shadow-2xl">
-          <input 
-            type="text" 
-            placeholder="Ask anything about your health..."
-            className="flex-1 bg-transparent border-none outline-none px-4 py-2 text-sm text-white placeholder:text-white/20"
-          />
-          <button className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white">
-            <Send className="w-5 h-5" />
-          </button>
+      {/* Status Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mt-12 w-full max-w-xs glass-dark rounded-[32px] p-5 border border-white/5 flex items-center gap-4"
+      >
+        <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-foreground/40">
+          <Timer className="w-5 h-5" />
         </div>
-      </div>
+        <div className="text-left">
+          <p className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest">Development Status</p>
+          <p className="text-xs font-bold text-foreground/80">Beta Testing Starting Soon</p>
+        </div>
+        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+      </motion.div>
+
+      {/* CTA Placeholder */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+        className="mt-8 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors cursor-default"
+      >
+        Notify me when ready <ArrowUpRight className="w-3 h-3" />
+      </motion.button>
     </div>
   );
 };
