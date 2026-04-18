@@ -18,11 +18,11 @@ export const AppShell = ({ children, activeTab }: AppShellProps) => {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute inset-0 overflow-y-auto overscroll-contain px-4 pt-6 pb-28"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute inset-0 overflow-y-auto overscroll-contain px-4 pt-6 pb-28 md:pb-32"
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <div className="max-w-md mx-auto min-h-full flex flex-col">

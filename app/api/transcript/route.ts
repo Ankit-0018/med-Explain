@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import OpenAI from "openai";
+import { createClient } from "@/lib/supabase/server";
 
 const COLORS = [
   "#8b5cf6", "#3b82f6", "#06b6d4", "#10b981", "#f59e0b",
@@ -13,6 +15,7 @@ CRITICAL: Return ONLY valid JSON. No markdown. No code fences. No extra text.
 OUTPUT STRUCTURE:
 {
   "transcript": "The cleaned full transcript text",
+  "condition": "The detected health condition",
   "ui": {
     "summaryCard": {
       "title": "Short condition name (e.g. 'Common Cold', 'Type 2 Diabetes')",
@@ -35,6 +38,8 @@ OUTPUT STRUCTURE:
         "details": {
           "why": "Why prescribed based on this consultation",
           "how": "Patient-friendly explanation of mechanism",
+          "effectiveness": "Tips to make the medicine more effective",
+          "dosageGuidance": "Detailed dosage and administration guidance",
           "sideEffects": ["Side effect 1", "Side effect 2", "Side effect 3"],
           "food": "Food timing instructions"
         }
@@ -85,17 +90,60 @@ RULES:
 13. Fill sideEffects and food from medical knowledge if not stated
 14. doctorNotes should capture direct observations or warnings from the doctor`;
 
+const VALIDATION_PROMPT = `You are a medical data validator. Your job is to verify extracted medical information.
+
+RULES:
+1. Check if the medicine is real and commonly used.
+2. Suggest the closest valid medicine if misspelled.
+3. Compare medicine with the detected condition.
+4. Return a confidence score (0-1).
+5. Add flags if necessary: "unknown_medicine", "possible_misspelling", "context_mismatch".
+
+OUTPUT JSON:
+{
+"is_valid_medicine": boolean,
+"suggested_correction": "string or null",
+"context_relevance": "common | possible | unlikely",
+"confidence": number (0 to 1),
+"flags": ["reason1", "reason2"],
+"final_medicine": "string",
+"store_in_db": true
+}`;
+
+async function validateMedicine(openai: OpenAI, medicine: string, condition: string) {
+  const completion = await openai.chat.completions.create({
+    model: "openai/gpt-4o-mini",
+    messages: [
+      { role: "system", content: VALIDATION_PROMPT },
+      {
+        role: "user",
+        content: `Medicine: ${medicine}\nCondition: ${condition}`,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  return JSON.parse(completion.choices[0].message.content || "{}");
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey || apiKey === "your_api_key_here") {
-      return NextResponse.json(
-        { error: "GROQ_API_KEY is not configured in .env.local" },
-        { status: 500 }
-      );
-    }
+    const groqKey = process.env.GROQ_API_KEY;
+    const openrouterKey = process.env.OPENROUTER_API_KEY;
 
-    const groq = new Groq({ apiKey });
+    if (!groqKey) return NextResponse.json({ error: "GROQ_API_KEY missing" }, { status: 500 });
+    if (!openrouterKey) return NextResponse.json({ error: "OPENROUTER_API_KEY missing" }, { status: 500 });
+
+    const groq = new Groq({ apiKey: groqKey });
+    const openai = new OpenAI({
+      apiKey: openrouterKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": "https://med-explain.vercel.app",
+        "X-Title": "MedExplain",
+      }
+    });
+    const supabase = await createClient();
 
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File | null;
@@ -104,7 +152,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No audio file received" }, { status: 400 });
     }
 
-    // ── Step 1: Transcribe audio with Whisper via Groq ────────────────────────
+    // ── Step 1: Transcribe ──────────────────────────────────────────────────
     const transcription = await groq.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-large-v3",
@@ -112,63 +160,91 @@ export async function POST(req: NextRequest) {
       response_format: "text",
     });
 
-    const transcriptText = typeof transcription === "string"
-      ? transcription
-      : (transcription as any).text ?? "";
+    const transcriptText = typeof transcription === "string" ? transcription : (transcription as any).text ?? "";
 
     if (!transcriptText.trim()) {
-      return NextResponse.json(
-        { error: "Could not transcribe audio — no speech detected" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No speech detected" }, { status: 400 });
     }
 
-    // ── Step 2: Structure data using Llama via Groq ───────────────────────────
+    // ── Step 2: Extraction ──────────────────────────────────────────────────
     const chatCompletion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: EXTRACTION_PROMPT },
-        { role: "user", content: `Here is the consultation transcript:\n\n${transcriptText}` },
+        { role: "user", content: `Transcript:\n${transcriptText}` },
       ],
-      temperature: 0.2,
-      max_tokens: 8192,
       response_format: { type: "json_object" },
     });
 
-    const rawText = chatCompletion.choices?.[0]?.message?.content?.trim() ?? "";
-
-    // Strip markdown code fences if present
-    const jsonText = rawText
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/```$/i, "")
-      .trim();
-
-    let parsed: { transcript: string; ui: any };
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to parse AI response as JSON", raw: rawText },
-        { status: 500 }
-      );
-    }
-
-    // Assign colors to medicine cards and ensure IDs
+    const parsed = JSON.parse(chatCompletion.choices[0].message.content || "{}");
     const ui = parsed.ui ?? {};
+    const condition = parsed.condition ?? ui.summaryCard?.title ?? "unknown";
+
+    // ── Step 3: Validation Pipeline ──────────────────────────────────────────
     if (Array.isArray(ui.medicineCards)) {
-      ui.medicineCards = ui.medicineCards.map((med: any, index: number) => ({
-        ...med,
-        id: med.id ?? String(index + 1),
-        color: COLORS[index % COLORS.length],
-        details: med.details ?? {
-          why: "As prescribed by your doctor.",
-          how: "Works to address your condition.",
-          sideEffects: [],
-          food: "Follow your doctor's instructions.",
-        },
-      }));
+      const validationPromises = ui.medicineCards.map(async (med: any, index: number) => {
+        // Check cache first
+        const { data: cached } = await supabase
+          .from("medicine_cache")
+          .select("*")
+          .eq("medicine_name", med.name.toLowerCase())
+          .single();
+
+        let validation;
+        if (cached && cached.verified) {
+          validation = {
+            is_valid_medicine: true,
+            suggested_correction: null,
+            context_relevance: "common",
+            confidence: 1.0,
+            flags: [],
+            final_medicine: med.name,
+            store_in_db: false
+          };
+          // Update usage
+          await supabase.from("medicine_cache").update({ 
+            usage_count: (cached.usage_count || 0) + 1,
+            last_used: new Date().toISOString()
+          }).eq("id", cached.id);
+        } else {
+          validation = await validateMedicine(openai, med.name, condition);
+          
+          // Update/Insert cache
+          if (validation.is_valid_medicine) {
+            await supabase.from("medicine_cache").upsert({
+              medicine_name: validation.final_medicine.toLowerCase(),
+              verified: true,
+              usage_count: 1,
+              last_used: new Date().toISOString()
+            }, { onConflict: "medicine_name" });
+          }
+        }
+
+        return {
+          ...med,
+          id: med.id ?? String(index + 1),
+          color: COLORS[index % COLORS.length],
+          validation
+        };
+      });
+
+      ui.medicineCards = await Promise.all(validationPromises);
     }
+
+    // ── Step 4: Store results ───────────────────────────────────────────────
+    const detectedMedicines = ui.medicineCards?.map((m: any) => m.name) || [];
+    const avgConfidence = ui.medicineCards?.reduce((acc: number, m: any) => acc + (m.validation?.confidence || 0), 0) / (detectedMedicines.length || 1);
+    
+    const { data: { user } } = await supabase.auth.getUser();
+
+    await supabase.from("processed_results").insert({
+      user_id: user?.id,
+      transcription: transcriptText,
+      detected_medicine: detectedMedicines,
+      corrected_results: ui,
+      confidence_score: avgConfidence,
+      flags: ui.medicineCards?.flatMap((m: any) => m.validation?.flags || []) || []
+    });
 
     return NextResponse.json({
       transcript: parsed.transcript ?? transcriptText,
@@ -176,9 +252,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("[/api/transcript] Error:", error);
-    return NextResponse.json(
-      { error: error?.message ?? "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error?.message || "Internal server error" }, { status: 500 });
   }
 }

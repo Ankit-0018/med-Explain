@@ -1,16 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Pill, Clock, Info, Star, CheckCircle2 } from "lucide-react";
+import { Pill, Clock, Info, Star, CheckCircle2, AlertTriangle, ChevronRight } from "lucide-react";
 import { GlassCard } from "./GlassCard";
 import type { MedicineCard as MedicineCardType, TimingSlot } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const TIMING_CONFIG: Record<TimingSlot, { label: string; emoji: string }> = {
-  morning:   { label: "Morning",   emoji: "🌅" },
+  morning: { label: "Morning", emoji: "🌅" },
   afternoon: { label: "Afternoon", emoji: "☀️" },
-  evening:   { label: "Evening",   emoji: "🌆" },
-  night:     { label: "Night",     emoji: "🌙" },
+  evening: { label: "Evening", emoji: "🌆" },
+  night: { label: "Night", emoji: "🌙" },
 };
 
 function ConfidenceBar({ value }: { value: number }) {
@@ -46,24 +46,40 @@ interface MedicineCardProps {
 
 export const MedicineCard = ({ medicine, onClick, index }: MedicineCardProps) => {
   const isHighPriority = medicine.priority === "high";
+  const validation = medicine.validation;
+  const isLowConfidence = validation && validation.confidence < 0.7;
+  const hasFlags = validation && validation.flags.length > 0;
+  const isInvalid = validation && !validation.is_valid_medicine;
 
   return (
     <GlassCard
       delay={index * 0.08}
-      className="cursor-pointer group hover:bg-white/5 transition-all duration-300 border-l-4 !p-5"
+      className={cn(
+        "cursor-pointer group hover:bg-white/5 transition-all duration-300 border-l-4 !p-5 relative overflow-hidden",
+        (isLowConfidence || isInvalid) ? "border-red-500/50" : ""
+      )}
       style={{ borderLeftColor: medicine.color } as any}
+      onClick={() => onClick(medicine)}
     >
+      {/* Validation Banner */}
+      {(isLowConfidence || isInvalid || hasFlags) && (
+        <div className="absolute top-0 right-0 bg-red-500/10 border-l border-b border-red-500/20 px-3 py-1 flex items-center gap-1.5 rounded-bl-xl">
+          <AlertTriangle className="w-3 h-3 text-red-400" />
+          <span className="text-[8px] font-black uppercase tracking-[0.15em] text-red-400">Issue Detected</span>
+        </div>
+      )}
+
       {/* Top row */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-2.5">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center gap-3">
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
             style={{ backgroundColor: `${medicine.color}22`, color: medicine.color }}
           >
-            <Pill className="w-4.5 h-4.5" />
+            <Pill className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="text-base font-bold leading-tight group-hover:text-primary transition-colors">
+          <div className="min-w-0">
+            <h3 className="text-base font-bold leading-tight group-hover:text-primary transition-colors truncate">
               {medicine.name}
             </h3>
             <p className="text-[11px] text-foreground/40 font-medium">{medicine.dosage}</p>
@@ -77,61 +93,95 @@ export const MedicineCard = ({ medicine, onClick, index }: MedicineCardProps) =>
               Priority
             </span>
           )}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick(medicine);
-            }}
-            className="p-1.5 rounded-lg bg-white/5 text-foreground/30 hover:text-foreground transition-colors"
-          >
-            <Info className="w-3.5 h-3.5" />
-          </motion.button>
         </div>
       </div>
 
-      {/* Frequency + Duration row */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex items-center gap-1.5 text-foreground/50">
-          <Clock className="w-3.5 h-3.5" />
-          <span className="text-xs font-medium">{medicine.frequency}</span>
+      {/* Validation Details Card */}
+      {validation && (isLowConfidence || hasFlags) && (
+        <div className="mb-4 bg-red-500/5 rounded-2xl p-4 border border-red-500/10 space-y-3">
+          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+            <span className="text-foreground/30">Confidence Score</span>
+            <span className={validation.confidence < 0.5 ? "text-red-400" : "text-amber-400"}>
+              {Math.round(validation.confidence * 100)}% ({validation.confidence < 0.5 ? "Critical" : "Review Needed"})
+            </span>
+          </div>
+
+          {validation.suggested_correction && (
+            <div className="flex items-center gap-2 text-[11px]">
+              <div className="w-1 h-1 rounded-full bg-primary" />
+              <span className="text-foreground/40 font-medium whitespace-nowrap">Suggested:</span>
+              <span className="font-bold text-primary underline decoration-primary/20 underline-offset-4 decoration-dotted">
+                {validation.suggested_correction}
+              </span>
+            </div>
+          )}
+
+          {validation.flags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {validation.flags.map((flag, idx) => (
+                <div key={idx} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/10 text-[8px] font-bold text-red-400/80 uppercase tracking-tighter">
+                  {flag.replace("_", " ")}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        {medicine.duration && (
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-foreground/30" />
-            <span className="text-xs text-foreground/40 font-medium">{medicine.duration}</span>
+      )}
+
+      {/* Frequency + Duration row */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 text-foreground/50">
+            <Clock className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold">{medicine.frequency}</span>
+          </div>
+          {medicine.duration && (
+            <div className="flex items-center gap-1.5 text-foreground/40">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">{medicine.duration}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Compact Timing Indicators */}
+        {medicine.timing?.length > 0 && (
+          <div className="flex gap-1">
+            {medicine.timing.map((slot) => {
+              const t = TIMING_CONFIG[slot];
+              return (
+                <div
+                  key={slot}
+                  title={t?.label}
+                  className="w-6 h-6 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-[10px]"
+                >
+                  {t?.emoji}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Timing pills */}
-      {medicine.timing?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {medicine.timing.map((slot) => {
-            const t = TIMING_CONFIG[slot];
-            if (!t) return null;
-            return (
-              <span
-                key={slot}
-                className="text-[10px] font-semibold px-2.5 py-1 rounded-full glass-dark border-white/8"
-              >
-                {t.emoji} {t.label}
-              </span>
-            );
-          })}
+      {/* Instructions */}
+      {medicine.instructions && (
+        <div className="bg-white/5 rounded-xl p-3 mb-4 flex gap-3">
+          <Info className="w-3.5 h-3.5 text-foreground/30 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-foreground/50 leading-relaxed italic">
+            {medicine.instructions}
+          </p>
         </div>
       )}
 
-      {/* Instructions */}
-      {medicine.instructions && (
-        <p className="text-[11px] text-foreground/50 leading-snug mb-3 pl-1 border-l-2 border-white/10 italic">
-          {medicine.instructions}
-        </p>
-      )}
-
       {/* Confidence bar */}
-      <ConfidenceBar value={medicine.confidence ?? 0} />
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex-1">
+          <ConfidenceBar value={medicine.confidence ?? 0} />
+        </div>
+        <div className="ml-4 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary group-hover:translate-x-1 transition-transform">
+          See Detail
+          <ChevronRight className="w-3.5 h-3.5" />
+        </div>
+      </div>
     </GlassCard>
   );
 };

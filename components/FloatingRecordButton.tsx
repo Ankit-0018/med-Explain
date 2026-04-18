@@ -63,16 +63,8 @@ export const FloatingRecordButton = ({
             {/* Pulse rings when recording */}
             {isRecording && (
               <>
-                <motion.div
-                  animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="absolute inset-0 bg-red-500 rounded-full"
-                />
-                <motion.div
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
-                  className="absolute inset-0 bg-red-500 rounded-full"
-                />
+                <div className="absolute inset-0 bg-red-500 rounded-full animate-record-ring" />
+                <div className="absolute inset-0 bg-red-500 rounded-full animate-record-ring-delayed" />
               </>
             )}
 

@@ -16,6 +16,16 @@ export interface SummaryCard {
   action: string;
 }
 
+export interface MedicineValidation {
+  is_valid_medicine: boolean;
+  suggested_correction: string | null;
+  context_relevance: "common" | "possible" | "unlikely";
+  confidence: number;
+  flags: string[];
+  final_medicine: string;
+  store_in_db: boolean;
+}
+
 // ─── Medicine Card ────────────────────────────────────────────────────────────
 
 export interface MedicineCard {
@@ -30,6 +40,7 @@ export interface MedicineCard {
   priority: Priority;
   confidence: number; // 0–100
   color: string;
+  validation?: MedicineValidation;
 
   // Legacy detail fields (enriched by AI)
   details: {
@@ -37,6 +48,10 @@ export interface MedicineCard {
     how: string;
     sideEffects: string[];
     food: string;
+    effectiveness?: string;
+    precautions?: string;
+    warning?: string;
+    dosageGuidance?: string;
   };
 }
 
